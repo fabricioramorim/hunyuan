@@ -1,0 +1,40 @@
+# Format: type|folder|filename|url
+# type: normal or gdrive
+# folder: checkpoints, loras, embeddings, controlnet, vae, unet
+# filename: the name you want to save the file as
+# url: the download URL
+
+# Example Hugging Face model
+#normal|checkpoints|model1.safetensors|https://huggingface.co/org/model/resolve/main/model1.safetensors
+
+# Example Civitai model
+#normal|loras|lora1.safetensors|https://civitai.com/api/download/models/12345
+
+# Example Google Drive model
+#gdrive|loras|lora_from_drive.safetensors|https://drive.google.com/uc?id=your_file_id
+
+# Example Unet model
+#normal|unet|unet_model.safetensors|https://huggingface.co/path/to/unet.safetensors
+
+# You can add more models by following the same format
+
+
+# Kijai's Image to Video Models
+normal|clip_vision|llava_llama3_vision.safetensors|https://huggingface.co/Comfy-Org/HunyuanVideo_repackaged/resolve/main/split_files/clip_vision/llava_llama3_vision.safetensors
+normal|diffusion_models|hunyuan_video_I2V_720_fixed_bf16.safetensors|https://huggingface.co/Kijai/HunyuanVideo_comfy/resolve/main/hunyuan_video_I2V_720_fixed_bf16.safetensors
+#normal|diffusion_models|hunyuan_video_I2V_720_fixed_fp8_e4m3fn.safetensors|https://huggingface.co/Kijai/HunyuanVideo_comfy/resolve/main/hunyuan_video_I2V_720_fixed_fp8_e4m3fn.safetensors
+#normal|vae|kajai_hunyuan_video_vae_bf16.safetensors|https://huggingface.co/Kijai/HunyuanVideo_comfy/resolve/main/hunyuan_video_vae_bf16.safetensors
+#normal|loras|hyvid_I2V_lora_hair_growth.safetensors|https://huggingface.co/Kijai/HunyuanVideo_comfy/resolve/main/hyvid_I2V_lora_hair_growth.safetensors
+#normal|loras|hyvid_I2V_lora_embrace.safetensors|https://huggingface.co/Kijai/HunyuanVideo_comfy/resolve/main/hyvid_I2V_lora_embrace.safetensors
+
+#normal|diffusion_models|hunyuan_video_I2V_fp8_e4m3fn.safetensors|https://huggingface.co/Kijai/HunyuanVideo_comfy/resolve/main/hunyuan_video_I2V_fp8_e4m3fn.safetensors
+#normal|diffusion_models|hunyuan_video_I2V_fp8_e5m2.safetensors|https://huggingface.co/Kijai/HunyuanVideo_comfy/blob/main/hunyuan_video_I2V_fp8_e5m2.safetensors
+
+
+
+
+# Comfy Org
+normal|diffusion_models|hunyuan_video_image_to_video_720p_bf16.safetensors|https://huggingface.co/Comfy-Org/HunyuanVideo_repackaged/resolve/main/split_files/diffusion_models/hunyuan_video_image_to_video_720p_bf16.safetensors
+normal|text_encoders|llava_llama3_fp8_scaled.safetensors|https://huggingface.co/Comfy-Org/HunyuanVideo_repackaged/resolve/main/split_files/text_encoders/llava_llama3_fp8_scaled.safetensors
+normal|text_encoders|clip_l.safetensors|https://huggingface.co/Comfy-Org/HunyuanVideo_repackaged/resolve/main/split_files/text_encoders/clip_l.safetensors
+
