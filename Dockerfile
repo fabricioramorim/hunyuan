@@ -27,7 +27,7 @@ RUN curl -fsSL -v -o ~/miniconda.sh -O https://repo.anaconda.com/miniconda/Minic
 ENV PATH /opt/conda/bin:$PATH
 
 # Create Python 3.12 environment
-RUN conda install -y python=3.12 pip && \
+RUN conda install -y python=3.10 pip && \
     conda clean -ya
 
 # Environment variables
@@ -98,7 +98,7 @@ RUN curl -fsSL -v -o ~/miniconda.sh -O https://repo.anaconda.com/miniconda/Minic
 ENV PATH /opt/conda/bin:$PATH
 
 # Create Python 3.12 environment
-RUN conda install -y python=3.12 pip && \
+RUN conda install -y python=3.10 pip && \
     conda clean -ya
 
 # Add environment variables for compilation
