@@ -4,7 +4,7 @@
 # 1) BUILDER STAGE
 # =============================================================================
 # Usamos a imagem base CUDA para o ambiente de build
-FROM nvidia/cuda:12.9.1-runtime-ubuntu22.04 AS builder # Corrigido: 'AS' em maiúsculas
+FROM nvidia/cuda:12.9.1-runtime-ubuntu22.04 AS builder
 
 # Instala dependências de build e Python/pip
 RUN apt-get update && \
