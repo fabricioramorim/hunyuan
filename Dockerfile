@@ -4,7 +4,7 @@
 # 1) BUILDER STAGE
 # =============================================================================
 # Usamos a imagem base CUDA para o ambiente de build
-FROM nvidia/cuda:12.9.1-runtime-ubuntu22.04 as builder
+FROM nvidia/cuda:12.9.1-runtime-ubuntu22.04 AS builder # Corrigido: 'AS' em maiúsculas
 
 # Instala dependências de build e Python/pip
 RUN apt-get update && \
@@ -91,14 +91,16 @@ ENV CC=gcc \
 RUN pip install --no-cache-dir --upgrade pip
 
 # Instala PyTorch para CUDA
-RUN pip install --no-cache-dir torch torchvision torchaudio
+RUN pip install --no-cache-dir torch torchvision torchaudio && \
+    pip cache purge # Limpa o cache do pip após a instalação do PyTorch
 
 # Copia ComfyUI da etapa builder
 COPY --from=builder /ComfyUI /ComfyUI
 
 # Instala requisitos do ComfyUI
 WORKDIR /ComfyUI
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip cache purge # Limpa o cache do pip após a instalação dos requisitos do ComfyUI
 
 # Instala outros pacotes Python
 RUN pip install --no-cache-dir \
@@ -116,7 +118,8 @@ RUN pip install --no-cache-dir \
     pyyaml \
     torchsde \
     opencv-python \
-    gdown
+    gdown && \
+    pip cache purge # Limpa o cache do pip após a instalação de outros pacotes
 
 # Clona custom nodes
 WORKDIR /ComfyUI/custom_nodes
@@ -174,7 +177,8 @@ RUN for dir in */; do \
         echo "Installing requirements for ${dir}..." && \
         pip install --no-cache-dir -r "${dir}requirements.txt" || true; \
     fi \
-    done
+    done && \
+    pip cache purge # Limpa o cache do pip após a instalação dos requisitos dos custom nodes
 
 
 # Copia arquivos de workflow
@@ -185,7 +189,8 @@ COPY --from=builder /sd-webui-infinite-image-browsing /sd-webui-infinite-image-b
 
 # Instala requisitos do sd-webui
 WORKDIR /sd-webui-infinite-image-browsing
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip cache purge # Limpa o cache do pip após a instalação dos requisitos do sd-webui
 
 # Copia todos os scripts
 COPY scripts/*.sh /
