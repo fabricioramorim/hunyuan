@@ -10,7 +10,9 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ github.repository }}
+  # Altera o IMAGE_NAME para usar o username correto do Docker Hub.
+  # Assumindo que o nome do seu repositório no GitHub seja 'hunyuan' (ou o nome do seu projeto).
+  IMAGE_NAME: ${{ github.repository_owner == 'fabricioramorim' && 'fabrioceras' || github.repository_owner }}/${{ github.event.repository.name }}
   DOCKER_BUILDKIT: 1
 
 jobs:
@@ -57,8 +59,6 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-
-      # --- A etapa de cache npm foi removida, pois não é necessária para o build Docker ---
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
