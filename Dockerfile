@@ -1,9 +1,12 @@
+# Dockerfile
+
 # =============================================================================
 # 1) BUILDER STAGE
 # =============================================================================
+# Usamos a imagem base CUDA para o ambiente de build
 FROM nvidia/cuda:12.9.1-runtime-ubuntu22.04 as builder
 
-# Install build dependencies
+# Instala dependências de build e Python/pip
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         wget \
@@ -14,29 +17,18 @@ RUN apt-get update && \
         g++ \
         make \
         cmake \
-        ca-certificates && \
+        ca-certificates \
+        python3.10 \
+        python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Miniconda and Python 3.12
-RUN curl -fsSL -v -o ~/miniconda.sh -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-    chmod +x ~/miniconda.sh && \
-    ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh
-
-# Add conda to path
-ENV PATH /opt/conda/bin:$PATH
-
-# Create Python 3.12 environment
-RUN conda install -y python=3.10 pip && \
-    conda clean -ya
-
-# Environment variables
+# Define variáveis de ambiente para Python
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     CC=gcc \
     CXX=g++
 
-# Clone ComfyUI (source only; no final environment here)
+# Clona ComfyUI (apenas o código-fonte; o ambiente final será criado na próxima etapa)
 WORKDIR /
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git
 RUN git clone https://github.com/zanllp/sd-webui-infinite-image-browsing.git
@@ -45,11 +37,12 @@ RUN git clone https://github.com/zanllp/sd-webui-infinite-image-browsing.git
 # =============================================================================
 # 2) FINAL STAGE
 # =============================================================================
+# Usamos a imagem base CUDA para o ambiente de execução
 FROM nvidia/cuda:12.9.1-devel-ubuntu22.04
 
-# Install runtime dependencies
+# Instala dependências de runtime e Python/pip
 RUN apt-get update && \
-    # Pre-accept the Microsoft font EULA
+    # Pre-aceita a EULA da fonte Microsoft
     echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections && \
     apt-get install -y --no-install-recommends \
         wget \
@@ -81,44 +74,33 @@ RUN apt-get update && \
         ttf-mscorefonts-installer \
         fonts-liberation \
         fonts-dejavu \
-        fontconfig && \
+        fontconfig \
+        python3.10 \
+        python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
-# Set OpenGL environment variables -  libEGL.so not loaded
+# Define variáveis de ambiente OpenGL
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
 ENV DISPLAY=:99
 
-# Install Miniconda and Python 3.12
-RUN curl -fsSL -v -o ~/miniconda.sh -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-    chmod +x ~/miniconda.sh && \
-    ~/miniconda.sh -b -p /opt/conda && \
-    rm ~/miniconda.sh
-
-# Add conda to path
-ENV PATH /opt/conda/bin:$PATH
-
-# Create Python 3.12 environment
-RUN conda install -y python=3.10 pip && \
-    conda clean -ya
-
-# Add environment variables for compilation
+# Define variáveis de ambiente para compilação
 ENV CC=gcc \
     CXX=g++
 
-# Upgrade pip
+# Atualiza pip
 RUN pip install --no-cache-dir --upgrade pip
 
-# --- Install PyTorch for CUDA ---
+# Instala PyTorch para CUDA
 RUN pip install --no-cache-dir torch torchvision torchaudio
 
-# Copy ComfyUI from builder
+# Copia ComfyUI da etapa builder
 COPY --from=builder /ComfyUI /ComfyUI
 
-# Install ComfyUI requirements
+# Instala requisitos do ComfyUI
 WORKDIR /ComfyUI
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install other Python packages
+# Instala outros pacotes Python
 RUN pip install --no-cache-dir \
     jupyterlab \
     notebook \
@@ -136,7 +118,7 @@ RUN pip install --no-cache-dir \
     opencv-python \
     gdown
 
-# Clone custom nodes
+# Clona custom nodes
 WORKDIR /ComfyUI/custom_nodes
 RUN git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git && \
     git clone https://github.com/facok/ComfyUI-HunyuanVideoMultiLora.git && \
@@ -186,7 +168,7 @@ RUN git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git && \
     git clone https://github.com/spacepxl/ComfyUI-Image-Filters.git
 
 
-# Install requirements for custom nodes (if any)
+# Instala requisitos para custom nodes (se houver)
 RUN for dir in */; do \
     if [ -f "${dir}requirements.txt" ]; then \
         echo "Installing requirements for ${dir}..." && \
@@ -195,33 +177,102 @@ RUN for dir in */; do \
     done
 
 
-# Copy workflow files
+# Copia arquivos de workflow
 COPY comfy-workflows/*.json /ComfyUI/user/default/workflows/
 
-# Copy sd-webui from builder
+# Copia sd-webui da etapa builder
 COPY --from=builder /sd-webui-infinite-image-browsing /sd-webui-infinite-image-browsing
 
-# Install sd-webui requirements
+# Instala requisitos do sd-webui
 WORKDIR /sd-webui-infinite-image-browsing
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all scripts
+# Copia todos os scripts
 COPY scripts/*.sh /
 
-# Copy files to container root directory
+# Copia arquivos para o diretório raiz do contêiner
 COPY manage-files/download-files.sh /
 COPY manage-files/files.txt /
 
-# Also create workspace directory structure
+# Cria a estrutura de diretórios do workspace
 RUN mkdir -p /workspace
 
-# Copy files to container root directory
+# Copia arquivos para o diretório workspace
 COPY manage-files/download-files.sh /workspace/
 COPY manage-files/files.txt /workspace/
 
+# Converte e dá permissão de execução aos scripts
 RUN dos2unix /*.sh && \
     dos2unix /workspace/*.sh && \
     chmod +x /*.sh && \
     chmod +x /workspace/*.sh
 
 CMD ["/start.sh"]
+```yaml
+# .github/workflows/docker-image.yml
+
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ github.repository }}
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Check disk space before
+        run: df -h
+      
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo docker image prune --all --force
+          df -h
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ github.ref_name }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: Check disk space after
+        run: df -h

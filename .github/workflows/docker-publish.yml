@@ -59,7 +59,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            PYTHON_VERSION=3.10.0
+            PYTHON_VERSION=3.12.1
             TORCH_VERSION=2.7.0
             CUDA_VERSION=12.9.1
             COMFYUI_VERSION=latest
