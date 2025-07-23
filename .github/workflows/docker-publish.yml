@@ -24,7 +24,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      # --- Nova etapa: Limpeza de disco mais agressiva no runner ---
+      # --- Limpeza de disco agressiva no runner ---
       - name: Aggressive Free disk space on runner
         run: |
           echo "--- Disk space BEFORE aggressive cleanup ---"
@@ -33,18 +33,18 @@ jobs:
           # Remove pacotes desnecessários e caches do apt
           sudo apt-get autoremove -y
           sudo apt-get clean
-          sudo rm -rf /usr/share/dotnet # Remove SDKs .NET
-          sudo rm -rf /usr/local/lib/android # Remove SDKs Android
-          sudo rm -rf /opt/ghc # Remove Glasgow Haskell Compiler
-          sudo rm -rf "/usr/local/share/boost" # Remove bibliotecas Boost
-          sudo rm -rf /usr/share/swift # Remove Swift toolchain
-          sudo rm -rf /usr/share/powershell # Remove PowerShell
-          sudo rm -rf /usr/local/share/chromium # Remove Chromium cache
-          sudo rm -rf /usr/local/.ghcup # Remove Haskell GHCup
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/share/powershell
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/local/.ghcup
 
           # Limpa o cache do Docker no runner
           sudo docker system prune --all --force --volumes
-          sudo rm -rf /var/lib/docker/* # Garante a limpeza profunda do Docker
+          sudo rm -rf /var/lib/docker/*
 
           echo "--- Disk space AFTER aggressive cleanup ---"
           df -h
@@ -58,14 +58,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # --- Cache para dependências npm (Node.js) ---
-      # Assumindo que você tem um package-lock.json ou yarn.lock na raiz do seu projeto
-      - name: Cache npm dependencies
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20' # Ou a versão que você usa para npm
-          cache: 'npm'
-          cache-dependency-path: '**/package-lock.json' # Ou '**/yarn.lock' se usar Yarn
+      # --- A etapa de cache npm foi removida, pois não é necessária para o build Docker ---
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
