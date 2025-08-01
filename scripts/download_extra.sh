@@ -8,7 +8,7 @@ fi
 
 MODEL_DIR="/workspace/ComfyUI/models"
 LORA_DIR="${MODEL_DIR}/loras"
-CHECKPOINTS_DIR="${MODEL_DIR}/checkpoints"
+CHECKPOINTS_DIR="${MODEL_DIR}/diffusion_models"
 
 # Criar os diretórios se não existirem
 mkdir -p "${LORA_DIR}"
