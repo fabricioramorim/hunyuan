@@ -1,0 +1,26 @@
+{
+  "tests": [
+    {
+      "name": "validation_text_input",
+      "input": {
+        "text": "Hello world",
+        "language": "en"
+      },
+      "timeout": 10000
+    }
+  ],
+  "config": {
+    "gpuTypeId": "NVIDIA GeForce RTX 4090",
+    "gpuCount": 1,
+    "env": [
+      {
+        "key": "ENV_KEY_HERE",
+        "value": "ENV_VALUE_HERE"
+      }
+    ],
+    "allowedCudaVersions": [
+      "12.9",
+      "12.8"
+    ]
+  }
+}
