@@ -1,5 +1,5 @@
 {
-  "title": "Hunyuan Video Generator (Not Safe For Work)",
+  "title": "Hunyuan Video Generator (Not Safe For Work) - CUDA 12.9",
   "description": "Leverages the Hunyuan model for high-quality Text-to-Video (T2V) generation. This endpoint is optimized for creating NSFW content. Specify detailed, descriptive prompts to achieve the best output. The underlying model technology is also capable of I2V (Image-to-Video) workflows.",
   "type": "serverless",
   "category": "video",
