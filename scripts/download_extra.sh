@@ -2,7 +2,7 @@
 set -e
 
 if [ "${SKIP_DOWNLOADS:-false}" == "true" ]; then
-    echo "SKIP_DOWNLOADS is set to true, skipping model downloads"
+    echo "**** SKIPPING EXTRA MODEL DOWNLOADS (SKIP_DOWNLOADS=true) ****"
     exit 0
 fi
 
@@ -10,8 +10,9 @@ MODEL_DIR="/workspace/ComfyUI/models"
 LORA_DIR="${MODEL_DIR}/loras"
 CHECKPOINTS_DIR="${MODEL_DIR}/checkpoints"
 
-mkdir -p "${MODEL_DIR}/loras"
-mkdir -p "${MODEL_DIR}/checkpoints"
+# Criar os diretórios se não existirem
+mkdir -p "${LORA_DIR}"
+mkdir -p "${CHECKPOINTS_DIR}"
 
 # Função para baixar um arquivo se ele ainda não existir no destino
 download_if_not_exists() {
@@ -20,66 +21,70 @@ download_if_not_exists() {
     local filename=$(basename "$dest")
 
     if [ ! -f "$dest" ]; then
-        echo "BAIXANDO -- $filename..."
-        wget -q --show-progress "$url" -O "$dest"
+        echo "📥 Starting download: $filename"
+        # Usando wget com opções para mostrar progresso e com 5 retries
+        wget -q --show-progress --tries=5 --timeout=30 "$url" -O "$dest"
         if [ $? -eq 0 ]; then
-            echo "CONCLUÍDO $filename com sucesso"
+            echo "✨ Completed: $filename"
         else
-            echo "FALHA ao baixar $filename. Verifique a URL ou sua conexão."
+            echo "❌ Error: Failed to download $filename. Check the URL or your connection."
+            # Remove o arquivo parcialmente baixado
+            rm -f "$dest"
+            return 1
         fi
     else
-        echo "$filename já existe, pulando download"
+        echo "✅ $filename already exists, skipping."
     fi
 }
 
-# URL base para download direto dos arquivos LoRA do Hugging Face
-HUGGINGFACE_LORA_BASE_URL="https://huggingface.co/datasets/oggimrm/HunyuanVideo/resolve/main/"
-# URL para navegar no repositório do Hugging Face (usada para listar os arquivos)
-HUGGINGFACE_LORA_REPO_BROWSE_URL="https://huggingface.co/datasets/oggimrm/HunyuanVideo/tree/main"
-
 # Exit immediately if SKIP_LORAS is set to true
 if [ "${SKIP_LORAS:-false}" == "true" ]; then
-    echo "SKIP_LORAS is set to true, skipping model downloads"
-    exit 0
+    echo "**** SKIPPING LORA DOWNLOADS (SKIP_LORAS=true) ****"
 else
-    echo "Buscando arquivos Lora .safetensors no repositório HunyuanVideo..."
+    echo "**** DOWNLOADING EXTRA LORAS ****"
 
-    LORAS_TO_DOWNLOAD=$(curl -s "$HUGGINGFACE_LORA_REPO_BROWSE_URL" | grep -oP 'href="[^"]+Lora+\.safetensors"' | sed -E 's/href="([^"]+)"/\1/' | xargs -n 1 basename)
+    # Listagem explícita dos arquivos LoRA para evitar erros de parsing
+    declare -a LORAS_TO_DOWNLOAD=(
+        "lora_name_1.safetensors" # Substitua com o nome real dos seus arquivos LoRA
+        "lora_name_2.safetensors" # Adicione mais linhas conforme necessário
+    )
 
-    if [ -z "$LORAS_TO_DOWNLOAD" ]; then
-        echo "Nenhum arquivo .safetensors encontrado no repositório. Verifique a URL ou a estrutura da página."
+    if [ ${#LORAS_TO_DOWNLOAD[@]} -eq 0 ]; then
+        echo "⚠️ No LoRA files found to download. Please check the list in the script."
     else
-        echo "--- LoRAs encontrados no repositório ---"
-        for filename in $LORAS_TO_DOWNLOAD; do
+        echo "--- LoRAs to download ---"
+        for filename in "${LORAS_TO_DOWNLOAD[@]}"; do
             echo "- ${filename}" 
-            download_if_not_exists "${HUGGINGFACE_LORA_BASE_URL}${filename}" \
+            download_if_not_exists "https://huggingface.co/datasets/oggimrm/HunyuanVideo/resolve/main/${filename}" \
                 "${LORA_DIR}/${filename}"
         done
         echo "----------------------------------------"
     fi
-    echo "Checkpoints dinamicos baixados com sucesso."
 fi
 
 # Exit immediately if SKIP_CHECKPOINTS is set to true
 if [ "${SKIP_CHECKPOINTS:-false}" == "true" ]; then
-    echo "SKIP_CHECKPOINTS is set to true, skipping model downloads"
-    exit 0
+    echo "**** SKIPPING CHECKPOINT DOWNLOADS (SKIP_CHECKPOINTS=true) ****"
 else
-    echo "Buscando arquivos Checkpoint .safetensors no repositório HunyuanVideo..."
+    echo "**** DOWNLOADING EXTRA CHECKPOINTS ****"
 
-    CHECKPOINTS_TO_DOWNLOAD=$(curl -s "$HUGGINGFACE_LORA_REPO_BROWSE_URL" | grep -oP 'href="[^"]+\.safetensors"' | sed -E 's/href="([^"]+)"/\1/' | xargs -n 1 basename)
-
-    if [ -z "$CHECKPOINTS_TO_DOWNLOAD" ]; then
-        echo "Nenhum arquivo .safetensors encontrado no repositório. Verifique a URL ou a estrutura da página."
+    # Listagem explícita dos arquivos Checkpoint para evitar erros de parsing
+    declare -a CHECKPOINTS_TO_DOWNLOAD=(
+        "checkpoint_name_1.safetensors" # Substitua com o nome real dos seus arquivos Checkpoint
+        "checkpoint_name_2.safetensors" # Adicione mais linhas conforme necessário
+    )
+    
+    if [ ${#CHECKPOINTS_TO_DOWNLOAD[@]} -eq 0 ]; then
+        echo "⚠️ No Checkpoint files found to download. Please check the list in the script."
     else
-        echo "--- Checkpoints encontrados no repositório ---"
-        for filename in $CHECKPOINTS_TO_DOWNLOAD; do
+        echo "--- Checkpoints to download ---"
+        for filename in "${CHECKPOINTS_TO_DOWNLOAD[@]}"; do
             echo "- ${filename}"
-            download_if_not_exists "${HUGGINGFACE_LORA_BASE_URL}${filename}" \
+            download_if_not_exists "https://huggingface.co/datasets/oggimrm/HunyuanVideo/resolve/main/${filename}" \
                 "${CHECKPOINTS_DIR}/${filename}"
         done
         echo "----------------------------------------"
     fi
-
-    echo "Checkpoints dinamicos baixados com sucesso."
 fi
+
+echo "✨ Download extra models completed successfully ✨"
