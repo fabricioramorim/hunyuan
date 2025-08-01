@@ -37,25 +37,28 @@ download_if_not_exists() {
     fi
 }
 
+# URL base para download direto dos arquivos LoRA do Hugging Face
+HUGGINGFACE_REPO="oggimrm/HunyuanVideo"
+HUGGINGFACE_REPO_URL="https://huggingface.co/datasets/${HUGGINGFACE_REPO}"
+HUGGINGFACE_API_URL="https://huggingface.co/api/datasets/${HUGGINGFACE_REPO}/tree/main"
+
 # Exit immediately if SKIP_LORAS is set to true
 if [ "${SKIP_LORAS:-false}" == "true" ]; then
     echo "**** SKIPPING LORA DOWNLOADS (SKIP_LORAS=true) ****"
 else
     echo "**** DOWNLOADING EXTRA LORAS ****"
+    
+    # Usar a API do Hugging Face para listar arquivos de forma confiável
+    # Filtrar por nomes que comecem com "Lora_" e terminem com ".safetensors"
+    LORAS_TO_DOWNLOAD=$(curl -s "${HUGGINGFACE_API_URL}" | grep -oP '(?<="path":")[^"]*Lora_[^"]*\.safetensors' || true)
 
-    # Listagem explícita dos arquivos LoRA para evitar erros de parsing
-    declare -a LORAS_TO_DOWNLOAD=(
-        "lora_name_1.safetensors" # Substitua com o nome real dos seus arquivos LoRA
-        "lora_name_2.safetensors" # Adicione mais linhas conforme necessário
-    )
-
-    if [ ${#LORAS_TO_DOWNLOAD[@]} -eq 0 ]; then
-        echo "⚠️ No LoRA files found to download. Please check the list in the script."
+    if [ -z "$LORAS_TO_DOWNLOAD" ]; then
+        echo "⚠️ No LoRA files found in the repository. Please check the URL or the file patterns."
     else
         echo "--- LoRAs to download ---"
-        for filename in "${LORAS_TO_DOWNLOAD[@]}"; do
+        for filename in $LORAS_TO_DOWNLOAD; do
             echo "- ${filename}" 
-            download_if_not_exists "https://huggingface.co/datasets/oggimrm/HunyuanVideo/resolve/main/${filename}" \
+            download_if_not_exists "${HUGGINGFACE_REPO_URL}/resolve/main/${filename}" \
                 "${LORA_DIR}/${filename}"
         done
         echo "----------------------------------------"
@@ -68,19 +71,17 @@ if [ "${SKIP_CHECKPOINTS:-false}" == "true" ]; then
 else
     echo "**** DOWNLOADING EXTRA CHECKPOINTS ****"
 
-    # Listagem explícita dos arquivos Checkpoint para evitar erros de parsing
-    declare -a CHECKPOINTS_TO_DOWNLOAD=(
-        "checkpoint_name_1.safetensors" # Substitua com o nome real dos seus arquivos Checkpoint
-        "checkpoint_name_2.safetensors" # Adicione mais linhas conforme necessário
-    )
+    # Usar a API do Hugging Face para listar arquivos de forma confiável
+    # Filtrar por nomes que comecem com "Checkpoint_" e terminem com ".safetensors"
+    CHECKPOINTS_TO_DOWNLOAD=$(curl -s "${HUGGINGFACE_API_URL}" | grep -oP '(?<="path":")[^"]*Checkpoint_[^"]*\.safetensors' || true)
     
-    if [ ${#CHECKPOINTS_TO_DOWNLOAD[@]} -eq 0 ]; then
-        echo "⚠️ No Checkpoint files found to download. Please check the list in the script."
+    if [ -z "$CHECKPOINTS_TO_DOWNLOAD" ]; then
+        echo "⚠️ No Checkpoint files found in the repository. Please check the URL or the file patterns."
     else
         echo "--- Checkpoints to download ---"
-        for filename in "${CHECKPOINTS_TO_DOWNLOAD[@]}"; do
+        for filename in $CHECKPOINTS_TO_DOWNLOAD; do
             echo "- ${filename}"
-            download_if_not_exists "https://huggingface.co/datasets/oggimrm/HunyuanVideo/resolve/main/${filename}" \
+            download_if_not_exists "${HUGGINGFACE_REPO_URL}/resolve/main/${filename}" \
                 "${CHECKPOINTS_DIR}/${filename}"
         done
         echo "----------------------------------------"
