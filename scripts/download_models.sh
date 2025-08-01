@@ -10,7 +10,7 @@ fi
 MODEL_DIR="/ComfyUI/models"
 mkdir -p ${MODEL_DIR}/{unet,text_encoders,clip_vision,vae,loras}
 
-# Function to format file size
+# Function to format file size (already present, keeping it)
 format_size() {
     local size="${1:-0}"
     if [ "$size" -eq 0 ]; then
@@ -28,117 +28,52 @@ format_size() {
     fi
 }
 
-# Function to get true file size from Hugging Face
-get_hf_file_size() {
-    local url="$1"
-    local size=0
-    
-    local redirect_url=$(curl -sIL "$url" | grep -i "location:" | tail -n 1 | awk '{print $2}' | tr -d '\r')
-    
-    if [ -n "$redirect_url" ]; then
-        size=$(curl -sI "$redirect_url" | grep -i content-length | tail -n 1 | awk '{print $2}' | tr -d '\r')
-    else
-        size=$(curl -sI "$url" | grep -i content-length | tail -n 1 | awk '{print $2}' | tr -d '\r')
-    fi
-    
-    echo "${size:-0}"
-}
-
+# New function to download file with retries and better error handling
 download_file() {
     local url="$1"
     local dest="$2"
     local filename=$(basename "$dest")
     local model_type=$(basename $(dirname "$dest"))
-    
+    local max_retries=5
+    local retry_count=0
+
+    # Check if the file already exists and is not empty
     if [ -f "$dest" ] && [ -s "$dest" ]; then
-        echo "✅ $filename already exists in $model_type"
+        echo "✅ $filename already exists and is not empty in $model_type, skipping."
         return 0
     fi
 
     echo "📥 Starting download: $filename"
     
-    wget --progress=dot:mega \
-         -O "$dest.tmp" \
-         "$url" 2>&1 | \
-    stdbuf -o0 awk '
-    /[0-9]+%/ {
-        # Only print every 10% to reduce log spam
-        match($0, /([0-9]+)%/)
-        current = substr($0, RSTART, RLENGTH - 1)
-        if (current % 10 == 0 && current != last_printed) {
-            last_printed = current
-            printf "⏳ %s: %3d%%\n", FILENAME, current
-        }
-    }'
-    
-    mv "$dest.tmp" "$dest"
-    echo "✨ Completed: $filename"
-}
-
-# Function to download file with progress - Nice Progress on Terminal but not good on Runpod Logs
-# download_file() {
-#     local url="$1"
-#     local dest="$2"
-#     local filename=$(basename "$dest")
-#     local model_type=$(basename $(dirname "$dest"))
-#     local max_retries=3
-#     local retry_count=0
-
-#     if [ -f "$dest" ] && [ -s "$dest" ]; then
-#         echo "✅ $filename already exists in $model_type, skipping"
-#         return 0
-#     fi
-
-#     echo "📥 Downloading: $filename"
-#     echo "📂 Type: $model_type"
-    
-#     local size=$(get_hf_file_size "$url")
-#     local formatted_size=$(format_size "$size")
-#     echo "📊 Total size: $formatted_size"
-    
-#     while [ $retry_count -lt $max_retries ]; do
-#         echo "⏳ Download attempt $((retry_count + 1)) of $max_retries"
+    while [ $retry_count -lt $max_retries ]; do
+        echo "⏳ Download attempt $((retry_count + 1)) of $max_retries..."
         
-#         if wget --progress=dot:mega \
-#                 "$url" \
-#                 -O "$dest.tmp" 2>&1 | \
-#             stdbuf -o0 awk '
-#             /[0-9]+%/ {
-#                 match($0, /([0-9]+)%/)
-#                 percent = substr($0, RSTART, RLENGTH - 1)
-                
-#                 speed = "N/A"
-#                 if (match($0, /([0-9.]+[KMG]?B\/s)/)) {
-#                     speed = substr($0, RSTART, RLENGTH)
-#                 }
-                
-#                 printf "\r⏳ Progress: %3d%% | Speed: %s", percent, speed
-#                 fflush()
-#             }
-#             /[.]/ {
-#                 printf "."
-#                 fflush()
-#             }'; then
-            
-#             echo -e "\n"
-#             mv "$dest.tmp" "$dest"
-#             echo "✨ Successfully downloaded $filename ($formatted_size)"
-#             echo "----------------------------------------"
-#             return 0
-#         else
-#             echo -e "\n⚠️ Failed download attempt $((retry_count + 1)) for $filename"
-#             rm -f "$dest.tmp"
-#             retry_count=$((retry_count + 1))
-#             if [ $retry_count -lt $max_retries ]; then
-#                 echo "🔄 Retrying in 5 seconds..."
-#                 sleep 5
-#             fi
-#         fi
-#     done
+        # Use wget with a simpler progress bar and check for non-zero exit code
+        if wget --progress=dot:mega -O "$dest.tmp" "$url"; then
+            # Check if the downloaded file is not empty
+            if [ -s "$dest.tmp" ]; then
+                mv "$dest.tmp" "$dest"
+                echo "✨ Completed: $filename"
+                return 0
+            else
+                echo "⚠️ Downloaded file is empty. Retrying..."
+                rm -f "$dest.tmp"
+            fi
+        else
+            echo "⚠️ wget command failed. Retrying..."
+        fi
+        
+        retry_count=$((retry_count + 1))
+        if [ $retry_count -lt $max_retries ]; then
+            echo "🔄 Waiting 5 seconds before retrying..."
+            sleep 5
+        fi
+    done
 
-#     echo "❌ Failed to download $filename after $max_retries attempts"
-#     return 1
-# }
+    echo "❌ Failed to download $filename after $max_retries attempts."
+    rm -f "$dest.tmp"
+    return 1
+}
 
 echo "🚀 Starting model downloads..."
 
@@ -166,19 +101,10 @@ for dest in "${!downloads[@]}"; do
     current_file=$((current_file + 1))
 done
 
-# Fixed verification logic that only checks files in their correct directories
 echo -e "\n🔍 Verifying downloads..."
 verification_failed=false
 
-# Create a mapping of files to their expected directories
-declare -A expected_files
-for dest in "${!downloads[@]}"; do
-    dir=$(basename $(dirname "$dest"))
-    file=$(basename "$dest")
-    expected_files["$dir/$file"]=1
-done
-
-# Verify each file in its correct directory
+# Re-checking all files after downloads
 for dest in "${!downloads[@]}"; do
     dir=$(basename $(dirname "$dest"))
     file=$(basename "$dest")
