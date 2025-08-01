@@ -1,9 +1,9 @@
 {
-  "title": "Hunyuan",
-  "description": "An example description",
+  "title": "Hunyuan Video Generator (Not Safe For Work)",
+  "description": "Leverages the Hunyuan model for high-quality Text-to-Video (T2V) generation. This endpoint is optimized for creating NSFW content. Specify detailed, descriptive prompts to achieve the best output. The underlying model technology is also capable of I2V (Image-to-Video) workflows.",
   "type": "serverless",
   "category": "video",
-  "iconUrl": "https://example.com/icon.png",
+  "iconUrl": "https://huggingface.co/datasets/oggimrm/HunyuanVideo/resolve/main/logo.jpeg",
   "config": {
     "runsOn": "GPU",
     "containerDiskInGb": 20,
